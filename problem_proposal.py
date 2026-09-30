@@ -22,6 +22,16 @@ CONFIG = {
     "MAX_TOKENS": 16000,
 }
 
+
+
+class ProposalError(Exception):
+    """제안서 생성 중 사용자에게 보여줄 오류 (CLI는 종료, 웹앱은 화면에 표시)."""
+
+
+def _fail(message: str):
+    raise ProposalError(message)
+
+
 SECTION_TITLES = [
     "## 1. 현재 상황",
     "## 2. 확인된 문제",
@@ -79,29 +89,33 @@ def load_api_key() -> str:
     load_dotenv()
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key or "여기에" in api_key:
-        sys.exit("[오류] .env 파일에 ANTHROPIC_API_KEY가 설정되어 있지 않습니다.")
+        _fail("[오류] .env 파일에 ANTHROPIC_API_KEY가 설정되어 있지 않습니다.")
     return api_key
+
+
+def parse_report(filename: str, text: str):
+    match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
+    title = match.group(1).strip() if match else filename
+    return {"filename": filename, "title": title, "text": text}
 
 
 def load_reports(input_dir: Path):
     if not input_dir.is_dir():
-        sys.exit(f"[오류] 입력 폴더를 찾을 수 없습니다: {input_dir}")
+        _fail(f"[오류] 입력 폴더를 찾을 수 없습니다: {input_dir}")
 
     files = sorted(input_dir.glob("*.md"))
     if len(files) < 2:
-        sys.exit(f"[오류] 공통 문제를 찾으려면 보고서가 2개 이상 필요합니다: {input_dir}")
+        _fail(f"[오류] 공통 문제를 찾으려면 보고서가 2개 이상 필요합니다: {input_dir}")
 
     reports = []
     for path in files:
         try:
             text = path.read_text(encoding="utf-8")
         except OSError as e:
-            sys.exit(f"[오류] 파일을 읽는 중 문제가 발생했습니다: {path.name} ({e})")
+            _fail(f"[오류] 파일을 읽는 중 문제가 발생했습니다: {path.name} ({e})")
         if not text.strip():
-            sys.exit(f"[오류] 파일 내용이 비어 있습니다: {path.name}")
-        match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
-        title = match.group(1).strip() if match else path.name
-        reports.append({"filename": path.name, "title": title, "text": text})
+            _fail(f"[오류] 파일 내용이 비어 있습니다: {path.name}")
+        reports.append(parse_report(path.name, text))
     return reports
 
 
@@ -122,20 +136,20 @@ def call_claude(api_key: str, user_prompt: str) -> str:
             messages=[{"role": "user", "content": user_prompt}],
         )
     except AnthropicError as e:
-        sys.exit(
+        _fail(
             "[오류] Claude API 호출 중 문제가 발생했습니다 "
             f"(네트워크 상태나 API 키를 확인해 주세요): {e}"
         )
 
     if response.stop_reason == "max_tokens":
-        sys.exit(
+        _fail(
             "[오류] Claude 응답이 출력 길이 한도(max_tokens)에 걸려 중간에 잘렸습니다. "
             "CONFIG의 MAX_TOKENS 값을 늘리고 다시 실행해 주세요."
         )
 
     text_blocks = [block.text for block in response.content if block.type == "text"]
     if not text_blocks:
-        sys.exit("[오류] Claude 응답에서 텍스트 내용을 찾을 수 없습니다.")
+        _fail("[오류] Claude 응답에서 텍스트 내용을 찾을 수 없습니다.")
     return "\n".join(text_blocks)
 
 
@@ -156,11 +170,7 @@ def check_structure(result_text: str):
     return problems
 
 
-def save_result(output_dir: Path, result_text: str, reports) -> Path:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = output_dir / f"공통문제_해결제안서_{timestamp}.md"
-
+def build_document(result_text: str, reports, timestamp: str) -> str:
     source_list = "\n".join(f"- {r['title']} ({r['filename']})" for r in reports)
     header = (
         f"<!-- 이 제안서 초안은 Claude API로 자동 생성되었습니다. "
@@ -169,15 +179,32 @@ def save_result(output_dir: Path, result_text: str, reports) -> Path:
         "> 이 문서의 [제안] 항목은 원문에 없는 새 제안이며, 수치·예산·담당자·확정 일정은 "
         "원문에 없으면 \"확인 필요\"로 남겨 두었습니다. 사람이 검토한 뒤 사용하세요.\n\n---\n\n"
     )
+    return header + result_text
+
+
+
+def save_result(output_dir: Path, result_text: str, reports) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = output_dir / f"공통문제_해결제안서_{timestamp}.md"
+
+    document = build_document(result_text, reports, timestamp)
 
     try:
-        out_path.write_text(header + result_text, encoding="utf-8")
+        out_path.write_text(document, encoding="utf-8")
     except OSError as e:
-        sys.exit(f"[오류] 결과 파일을 저장하는 중 문제가 발생했습니다: {e}")
+        _fail(f"[오류] 결과 파일을 저장하는 중 문제가 발생했습니다: {e}")
     return out_path
 
 
 def main():
+    try:
+        _run()
+    except ProposalError as e:
+        sys.exit(str(e))
+
+
+def _run():
     api_key = load_api_key()
 
     base_dir = Path(__file__).resolve().parent
