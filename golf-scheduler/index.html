@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f3522">
 <title>골프 일정 투표</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{
   --bg:#f5f1e6; --card:#fffdf8; --ink:#16241b; --sub:#6f7a70; --line:#e7e1d1;
@@ -14,18 +14,20 @@
   --gold:#a87a1c; --gold-b:#e0b04a; --red:#d64545;
   --c0:#e4572e; --c1:#2e86de; --c2:#8e44ad; --c3:#16a085;
   --shadow:0 1px 2px rgba(20,40,25,.06),0 8px 24px rgba(20,40,25,.08);
-  --serif:"Playfair Display","Noto Serif KR",Georgia,"Batang",serif;
+  --font:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif;
+  --serif:var(--font);
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#0e1611; --card:#16211a; --ink:#ecf1ea; --sub:#93a498; --line:#26352a; --green-l:#1a3324; --gold:#e0b04a; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); }
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.4;
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);letter-spacing:-.01em;line-height:1.4;
   background-image:radial-gradient(1200px 400px at 50% -120px,rgba(31,92,58,.16),transparent 70%);background-repeat:no-repeat;
   -webkit-tap-highlight-color:transparent}
 .wrap{max-width:920px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
 h1{font-size:20px;margin:0}
+input{font-family:inherit}
 button{font:inherit;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s;touch-action:manipulation}
 .pill{display:inline-flex;align-items:center;justify-content:center;border-radius:99px;color:#fff;font-weight:700}
 .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 13px;font-size:13px;min-height:38px}
@@ -71,10 +73,10 @@ button{font:inherit;cursor:pointer;transition:transform .15s,border-color .15s,b
 .result.yes small{color:var(--gold-b)}
 .rline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:8px 0;font-family:var(--serif);font-size:28px;font-weight:700;line-height:1.3;position:relative}
 .rline .d{margin-right:4px}
-.rline .hol{font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:12px;font-weight:600;color:var(--gold-b);margin-left:6px}
-.rline .s{background:linear-gradient(180deg,#f0c766,#d9a93a);color:#2c2000;border-radius:10px;padding:1px 14px;font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:19px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.25);position:relative;text-align:center}
+.rline .hol{font-family:var(--font);font-size:12px;font-weight:600;color:var(--gold-b);margin-left:6px}
+.rline .s{background:linear-gradient(180deg,#f0c766,#d9a93a);color:#2c2000;border-radius:10px;padding:1px 14px;font-family:var(--font);font-size:19px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.25);position:relative;text-align:center}
 .rline .s em{display:block;font-style:normal;font-size:10px;font-weight:600;opacity:.75;line-height:1.1;margin-top:-2px}
-.rec{background:#fff;color:var(--green-d);font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px}
+.rec{background:#fff;color:var(--green-d);font-family:var(--font);font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px}
 .result.no strong{font-size:17px;color:var(--ink);font-weight:600}
 
 .summary{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-bottom:14px;font-size:14px;box-shadow:var(--shadow)}
