@@ -36,6 +36,11 @@
   .top5 { list-style:none; margin:0; padding:0; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
   .top5 li { display:flex; justify-content:space-between; gap:14px; min-width:170px; }
   .top5 li.me { color:#ffd86b; font-weight:700; }
+  .submit { display:flex; gap:6px; }
+  .submit input { width:130px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:#0a0d1a; color:var(--text); font:inherit; font-size:13px; }
+  .submit input:focus { outline:none; border-color:var(--accent); }
+  .submit button { padding:8px 12px; font-size:13px; }
+  #submitMsg:empty { display:none; }
   .top5-title { font-size:11px; color:var(--muted); margin-top:2px; }
   .pad { display:none; grid-template-columns:repeat(4,1fr); gap:6px; width:100%; margin-top:4px; }
   .pad button { padding:12px 0; font-size:17px; touch-action:none; user-select:none; -webkit-user-select:none; }
@@ -68,6 +73,11 @@
     <div class="overlay hidden" id="over">
       <h1>GAME OVER</h1>
       <p id="final"></p>
+      <div class="submit" id="submitBox">
+        <input id="nick" maxlength="10" placeholder="닉네임 (최대 10자)" autocomplete="off">
+        <button class="primary" id="submitBtn">랭킹 등록</button>
+      </div>
+      <p id="submitMsg"></p>
       <div class="top5-title" id="overTopTitle"></div>
       <ol class="top5" id="overTop"></ol>
       <button class="primary" id="retry">다시 하기 (Enter)</button>
@@ -337,7 +347,9 @@ function endGame() {
   state = 'over'; sfx.over();
   const rank = saveScore();
   $('final').innerHTML = `난이도 ${DIFF[diffKey].label} · 점수 <b>${score}</b> · ${lines}줄 · 레벨 ${level}<br>${rank === 0 ? '🎉 최고 기록!' : rank > 0 ? `🏅 ${rank + 1}위 기록` : ''}`;
-  renderTop('overTop', 'overTopTitle', rank);
+  pending = score > 0 ? { diff: diffKey, score, lines, level } : null;
+  serverEntryId = null; resetSubmit();
+  renderTop('overTop', 'overTopTitle', null);
   showOverlay('over');
 }
 function togglePause() {
@@ -363,17 +375,58 @@ function saveScore() {
   lastEntryId = entry.id;
   return top.findIndex(e => e.id === entry.id); // 5위 밖이면 -1
 }
-let lastEntryId = null;
-function renderTop(olId, titleId, highlightRank) {
-  const top = loadTop(diffKey), ol = $(olId);
-  $(titleId).textContent = `TOP 5 (${DIFF[diffKey].label})`;
-  ol.innerHTML = top.length ? '' : '<li><span>기록 없음</span></li>';
-  top.forEach((e, i) => {
+let lastEntryId = null;   // 이번 판의 내 기기 기록 id
+let serverEntryId = null; // 이번 판 서버 등록 id (강조용)
+// 전체 랭킹: 서버(/api/scores)에서 가져오고, 서버가 없으면(파일로 직접 열기 등) 내 기기 기록으로 대체
+async function fetchBoard(d) {
+  try {
+    const r = await fetch('/api/scores?d=' + d, { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    return { online: true, list: j.scores };
+  } catch (e) { return { online: false, list: loadTop(d) }; }
+}
+async function renderTop(olId, titleId, highlightId) {
+  const d = diffKey, ol = $(olId);
+  const b = await fetchBoard(d);
+  if (d !== diffKey) return; // 그 사이 난이도가 바뀌었으면 무시
+  $(titleId).textContent = b.online ? `전체 TOP 10 (${DIFF[d].label})` : `내 기기 TOP 5 (${DIFF[d].label}) · 서버 미연결`;
+  ol.innerHTML = '';
+  if (!b.list.length) { ol.innerHTML = '<li><span>기록 없음</span></li>'; return; }
+  b.list.forEach((e, i) => {
     const li = document.createElement('li');
-    if (e.id === lastEntryId && highlightRank >= 0) li.className = 'me';
-    li.innerHTML = `<span>${i + 1}. ${e.score}</span><span>${e.lines}줄 · ${e.date.slice(5)}</span>`;
-    ol.appendChild(li);
+    if (highlightId && e.id === highlightId) li.className = 'me';
+    const a = document.createElement('span'), c = document.createElement('span');
+    a.textContent = `${i + 1}. ${e.name ? e.name + ' ' : ''}${e.score}`; // textContent: 닉네임 XSS 방지
+    c.textContent = `${e.lines}줄`;
+    li.append(a, c); ol.appendChild(li);
   });
+}
+let pending = null;
+function resetSubmit() {
+  $('submitMsg').textContent = '';
+  $('submitBtn').disabled = false;
+  $('submitBox').style.display = pending ? '' : 'none';
+  try { $('nick').value = localStorage.getItem('tetris-nick') || ''; } catch(e) {}
+}
+async function submitScore() {
+  const name = $('nick').value.trim();
+  if (!pending) return;
+  if (!name) { $('submitMsg').textContent = '닉네임을 입력해 주세요'; $('nick').focus(); return; }
+  $('submitBtn').disabled = true; $('submitMsg').textContent = '등록 중…';
+  try { localStorage.setItem('tetris-nick', name); } catch(e) {}
+  try {
+    const r = await fetch('/api/scores', { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ diff: pending.diff, name, score: pending.score, lines: pending.lines, level: pending.level }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || '등록하지 못했어요');
+    serverEntryId = j.id; pending = null; $('submitBox').style.display = 'none';
+    $('submitMsg').textContent = j.rank ? `🌍 전체 ${j.rank}위로 등록됐어요!` : '등록됐어요 (100위 밖)';
+    renderTop('overTop', 'overTopTitle', serverEntryId);
+  } catch (e) {
+    $('submitMsg').textContent = (e.message && e.message !== 'Failed to fetch') ? e.message : '서버에 연결할 수 없어 등록하지 못했어요';
+    $('submitBtn').disabled = false;
+  }
 }
 
 // ---------- 메인 루프 ----------
@@ -495,6 +548,7 @@ function release(a) {
 const KEYMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'down', ArrowUp:'rot', x:'rot', X:'rot',
                  z:'rotb', Z:'rotb', ' ':'drop', c:'hold', C:'hold', Shift:'hold' };
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') { if (e.key === 'Enter') submitScore(); return; } // 닉네임 입력 중엔 게임 키 무시
   if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (!e.repeat) togglePause(); return; }
   if (e.key === 'm' || e.key === 'M') { setMuted(!muted); return; }
   if (e.key === 'Enter' && (state === 'menu' || state === 'over')) { e.preventDefault(); newGame(); return; }
@@ -543,7 +597,7 @@ document.querySelectorAll('#pad button').forEach(b => {
 // ---------- 메뉴 ----------
 function refreshMenu() {
   $('desc').textContent = DIFF[diffKey].desc;
-  renderTop('menuTop', 'menuTopTitle', -1);
+  renderTop('menuTop', 'menuTopTitle', null);
 }
 document.querySelectorAll('.diff button').forEach(b => b.addEventListener('click', () => {
   diffKey = b.dataset.d;
@@ -552,6 +606,7 @@ document.querySelectorAll('.diff button').forEach(b => b.addEventListener('click
 }));
 $('start').onclick = newGame;
 $('retry').onclick = newGame;
+$('submitBtn').onclick = submitScore;
 $('resume').onclick = togglePause;
 $('mute').onclick = e => { setMuted(!muted); e.currentTarget.blur(); };
 $('tomenu').onclick = () => { state = 'menu'; showOverlay('menu'); refreshMenu(); };
