@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3522">
+<title>골프 일정 투표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f1e6; --card:#fffdf8; --ink:#16241b; --sub:#6f7a70; --line:#e7e1d1;
+  --green:#1f5c3a; --green-d:#0f3522; --green-l:#e7f1e5;
+  --gold:#a87a1c; --gold-b:#e0b04a; --red:#d64545;
+  --c0:#e4572e; --c1:#2e86de; --c2:#8e44ad; --c3:#16a085;
+  --shadow:0 1px 2px rgba(20,40,25,.06),0 8px 24px rgba(20,40,25,.08);
+  --serif:"Playfair Display","Noto Serif KR",Georgia,"Batang",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0e1611; --card:#16211a; --ink:#ecf1ea; --sub:#93a498; --line:#26352a; --green-l:#1a3324; --gold:#e0b04a; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.4;
+  background-image:radial-gradient(1200px 400px at 50% -120px,rgba(31,92,58,.16),transparent 70%);background-repeat:no-repeat;
+  -webkit-tap-highlight-color:transparent}
+.wrap{max-width:920px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
+h1{font-size:20px;margin:0}
+button{font:inherit;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s,background .15s;touch-action:manipulation}
+.pill{display:inline-flex;align-items:center;justify-content:center;border-radius:99px;color:#fff;font-weight:700}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 13px;font-size:13px;min-height:38px}
+.btn:hover{border-color:var(--green)}
+
+/* 헤더 */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:20px 22px;border-radius:20px;color:#fff;
+  background:linear-gradient(135deg,var(--green-d),var(--green) 65%,#2c7a4e);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.top::after{content:"";position:absolute;right:-40px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(224,176,74,.28),transparent 68%)}
+.eyebrow{font-size:11px;letter-spacing:.22em;color:var(--gold-b);font-weight:700}
+.top h1{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.top h1 span{color:var(--gold-b)}
+.me{display:flex;align-items:center;gap:8px;font-size:14px;position:relative;z-index:1}
+.me .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff}
+.me .btn:hover{background:rgba(255,255,255,.22)}
+#meDot{border:2px solid rgba(255,255,255,.85);width:28px;height:28px;font-size:13px}
+
+/* 선택 화면 */
+#pick{text-align:center;padding-top:56px}
+#pick .eyebrow{color:var(--gold)}
+#pick h1{font-family:var(--serif);font-size:32px;margin:6px 0 8px}
+#pick p{color:var(--sub);margin:0 0 28px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:400px;margin:0 auto}
+.pbtn{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:24px 8px 20px;font-size:18px;font-weight:700;color:var(--ink);box-shadow:var(--shadow)}
+.pbtn:hover{transform:translateY(-3px);border-color:var(--gold-b)}
+.pbtn .dot{width:52px;height:52px;font-size:22px;margin:0 auto 10px;box-shadow:0 0 0 4px var(--card),0 0 0 5px var(--line)}
+
+/* 확정 배너 */
+.final{border-radius:20px;padding:20px 18px;margin-bottom:14px;text-align:center;color:#2c2000;position:relative;
+  background:linear-gradient(160deg,#f6d67f,#dcaa3b);box-shadow:0 10px 30px rgba(168,122,28,.35)}
+.final small{display:block;font-size:12px;letter-spacing:.16em;font-weight:800;margin-bottom:4px}
+.final strong{display:block;font-family:var(--serif);font-size:30px;line-height:1.25}
+.final .t{font-size:14px;margin-top:2px;opacity:.85}
+.final .warn{margin-top:8px;background:rgba(160,20,20,.14);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:700;color:#7a1010}
+.final button{margin-top:10px;background:rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.25);color:#2c2000;border-radius:8px;padding:6px 12px;font-size:12px}
+
+/* 결과 배너 */
+.result{border-radius:20px;padding:22px 18px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden}
+.result.yes{background:linear-gradient(160deg,#0f3522,#1f5c3a);color:#fff;box-shadow:0 10px 30px rgba(15,53,34,.4),inset 0 0 0 1px rgba(224,176,74,.55)}
+.result.yes::before{content:"";position:absolute;left:50%;top:-90px;width:320px;height:200px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(224,176,74,.3),transparent)}
+.result.no{background:var(--card);border:1.5px dashed var(--line);color:var(--sub)}
+.result small{display:block;font-size:12px;letter-spacing:.14em;font-weight:700;margin-bottom:8px;position:relative}
+.result.yes small{color:var(--gold-b)}
+.rline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:8px 0;font-family:var(--serif);font-size:28px;font-weight:700;line-height:1.3;position:relative}
+.rline .d{margin-right:4px}
+.rline .hol{font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:12px;font-weight:600;color:var(--gold-b);margin-left:6px}
+.rline .s{background:linear-gradient(180deg,#f0c766,#d9a93a);color:#2c2000;border-radius:10px;padding:1px 14px;font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:19px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.25);position:relative;text-align:center}
+.rline .s em{display:block;font-style:normal;font-size:10px;font-weight:600;opacity:.75;line-height:1.1;margin-top:-2px}
+.rec{background:#fff;color:var(--green-d);font-family:-apple-system,"Malgun Gothic",sans-serif;font-size:11px;font-weight:800;border-radius:99px;padding:2px 9px}
+.result.no strong{font-size:17px;color:var(--ink);font-weight:600}
+
+.summary{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-bottom:14px;font-size:14px;box-shadow:var(--shadow)}
+.sline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
+.sline b{min-width:44px}
+.tag{border-radius:99px;padding:1px 10px;font-size:12px;font-weight:700}
+.tag.near{color:var(--gold);border:1px solid var(--gold-b)}
+.sub-h{font-size:12px;color:var(--sub);margin:6px 0}
+.wait{font-weight:700}
+.wait.warn{color:var(--gold)}
+
+/* 달력 */
+.cal{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:var(--shadow)}
+.cal-h{display:flex;align-items:baseline;justify-content:center;gap:8px;padding:4px 0 14px;font-family:var(--serif);font-size:26px;font-weight:700}
+.cal-h small{font-family:inherit;font-size:13px;color:var(--sub);font-weight:400;letter-spacing:.2em}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dow{text-align:center;font-size:11px;letter-spacing:.1em;color:var(--sub);padding:2px 0 4px;font-weight:600}
+.dow:first-child{color:var(--red)}.dow:nth-child(7){color:#3b7ddd}
+.day{min-height:100px;border:1px solid var(--line);border-radius:12px;padding:6px 5px;background:var(--card);color:var(--ink);text-align:left;display:flex;flex-direction:column;gap:2px;overflow:hidden;position:relative}
+.day.blank{border:none;background:transparent;cursor:default}
+.day:not(.blank):hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,40,25,.12)}
+.day .n{font-size:13px;font-weight:700;margin-left:2px;white-space:nowrap}
+.day .hn{display:block;font-size:9px;color:var(--red);font-weight:600;margin-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day.sun .n,.day.hol .n{color:var(--red)}.day.sat .n{color:#3b7ddd}
+.day.ok{background:linear-gradient(180deg,var(--green-l),var(--card));border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.day.ok .n::after{content:"⛳";margin-left:4px;font-size:11px}
+.day.mine{outline:2px solid var(--gold-b);outline-offset:-3px}
+.day.fin{background:linear-gradient(180deg,#fbe9b5,var(--card));border-color:var(--gold-b);box-shadow:inset 0 0 0 2px var(--gold-b)}
+.day.fin .n::after{content:"⭐"}
+.row{display:flex;align-items:center;font-size:10px;min-height:17px}
+.row i{font-style:normal;color:var(--sub);flex:none;font-weight:600;white-space:nowrap;margin-right:3px}
+.row.full i{color:var(--green);font-weight:800}
+.row .pill+.pill{margin-left:-4px}
+.dot{width:16px;height:16px;font-size:9px;box-shadow:0 0 0 1.5px var(--card)}
+.pill.c0{background:var(--c0)}.pill.c1{background:var(--c1)}.pill.c2{background:var(--c2)}.pill.c3{background:var(--c3)}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--sub);margin:12px 4px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#status{font-size:12px;color:var(--sub)}
+
+details.log{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:13px}
+details.log summary{cursor:pointer;font-weight:700}
+details.log div{margin:6px 0;color:var(--sub)}
+details.log b{color:var(--ink)}
+
+/* 모달 */
+.modal{position:fixed;inset:0;background:rgba(8,20,12,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.on{display:flex}
+.box{background:var(--card);border-radius:22px;padding:22px;width:100%;max-width:400px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.box h3{margin:0 0 4px;font-family:var(--serif);font-size:24px}
+.box .who{font-size:13px;color:var(--sub);margin-bottom:14px}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.opt{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:16px 4px;font-size:18px;font-weight:800;min-height:64px}
+.opt:hover{border-color:var(--green)}
+.opt.sel{background:linear-gradient(160deg,var(--green-d),var(--green));border-color:var(--green);color:#fff;box-shadow:0 6px 14px rgba(15,53,34,.35)}
+.opt small{display:block;font-weight:400;font-size:11px;opacity:.75;margin-top:2px}
+.opt:disabled{opacity:.35;cursor:not-allowed}
+.opt.gold{border-color:var(--gold-b);font-size:15px;padding:10px 4px;min-height:44px}
+.opt.gold.sel{background:linear-gradient(180deg,#f0c766,#d9a93a);color:#2c2000;border-color:var(--gold-b)}
+.xbtn{width:100%;margin-top:12px;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:12px;padding:12px;font-weight:700}
+.xbtn:hover{background:rgba(214,69,69,.08)}
+.close{width:100%;margin-top:6px;border:none;background:none;color:var(--sub);padding:12px}
+.vlist{margin-top:16px;border-top:1px solid var(--line);padding-top:12px;font-size:13px}
+.vlist div{display:flex;align-items:center;gap:8px;margin:5px 0}
+.cfm{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.cfm b{font-size:13px}.cfm .opts{margin-top:8px}
+.field{width:100%;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;font-size:16px;margin:6px 0}
+.field.pin{text-align:center;letter-spacing:.5em;font-size:22px}
+.err{color:var(--red);font-size:13px;min-height:18px;margin:2px 0}
+.primary{width:100%;border:none;background:linear-gradient(160deg,var(--green-d),var(--green));color:#fff;border-radius:12px;padding:13px;font-weight:700;font-size:15px;margin-top:6px}
+
+/* 토스트 */
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#16241b;color:#fff;border-radius:99px;padding:10px 12px 10px 18px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:20;max-width:92vw}
+#toast button{background:var(--gold-b);color:#2c2000;border:none;border-radius:99px;padding:6px 14px;font-weight:800}
+
+@media (min-width:900px){
+  .day{min-height:120px;padding:8px 7px}
+  .dot{width:19px;height:19px;font-size:10px}
+  .row{min-height:21px;font-size:11px}
+  .grid{gap:8px}
+}
+@media (max-width:560px){
+  .wrap{padding:10px 10px calc(32px + env(safe-area-inset-bottom))}
+  .top{padding:16px}
+  .top h1{font-size:22px}
+  .cal{padding:8px}
+  .grid{gap:4px}
+  .day{min-height:84px;padding:4px 3px;border-radius:9px}
+  .dot{width:14px;height:14px;font-size:8px}
+  .row .bu{display:none}
+  .row .pill+.pill{margin-left:-5px}
+  .rline{font-size:22px}.rline .s{font-size:16px;padding:0 10px}
+  .final strong{font-size:24px}
+  .cal-h{font-size:22px}
+  /* 모바일에서는 아래에서 올라오는 시트 */
+  .modal{align-items:flex-end;padding:0}
+  .box{max-width:none;border-radius:22px 22px 0 0;padding-bottom:calc(22px + env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 1. 누구인지 선택 -->
+  <div id="pick" hidden>
+    <div class="eyebrow">FOUR-BALL · OCTOBER 2026</div>
+    <h1>골프 라운딩 일정 투표</h1>
+    <p>누구세요? 이름을 골라주세요</p>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+
+  <!-- 2. 메인 -->
+  <div id="main" hidden>
+    <div class="top">
+      <div style="position:relative;z-index:1"><div class="eyebrow">FOUR-BALL · OCTOBER 2026</div><h1>10월 <span>라운딩</span> 투표</h1></div>
+      <div class="me">
+        <span class="pill dot" id="meDot"></span>
+        <b id="meName"></b>
+        <button class="btn" id="switchBtn">사용자 변경</button>
+      </div>
+    </div>
+
+    <div class="final" id="final" hidden></div>
+    <div class="result" id="result"></div>
+    <div class="summary" id="summary"></div>
+
+    <div class="cal">
+      <div class="cal-h">10월 <small>2026</small></div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+    <div class="legend"><span>🟩 초록 칸 = 4명 전원 같은 부 가능</span><span>🟨 노란 테두리 = 내가 투표한 날</span><span>⭐ = 확정된 날</span></div>
+
+    <div class="actions">
+      <button class="btn" id="timesBtn">⚙ 부 시간 설정</button>
+      <button class="btn" id="resetBtn">내 투표 전체 삭제</button>
+      <span id="status"></span>
+    </div>
+
+    <details class="log" id="logBox"><summary>최근 변경 기록</summary><div id="logList"></div></details>
+  </div>
+</div>
+
+<!-- 날짜 투표 모달 -->
+<div class="modal" id="dayModal">
+  <div class="box">
+    <h3 id="dmTitle"></h3>
+    <div class="who" id="dmWho"></div>
+    <div class="opts" id="dmOpts"></div>
+    <button class="xbtn" id="dmX">✕ 투표 안 함 (내 투표 취소)</button>
+    <div class="vlist" id="dmList"></div>
+    <div class="cfm"><b>⭐ 이 일정으로 확정</b>
+      <div class="who" style="margin:2px 0 0">4명이 모두 가능한 부만 확정할 수 있어요</div>
+      <div class="opts" id="dmCfm"></div></div>
+    <button class="close" id="dmClose">닫기</button>
+  </div>
+</div>
+
+<!-- PIN 모달 -->
+<div class="modal" id="pinModal">
+  <div class="box">
+    <h3 id="pinTitle"></h3>
+    <div class="who" id="pinDesc"></div>
+    <input class="field pin" id="pin1" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">
+    <input class="field pin" id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="한 번 더" hidden>
+    <div class="err" id="pinErr"></div>
+    <button class="primary" id="pinOk">확인</button>
+    <button class="close" id="pinCancel">이름 다시 고르기</button>
+  </div>
+</div>
+
+<!-- 부 시간 모달 -->
+<div class="modal" id="timesModal">
+  <div class="box">
+    <h3>부 시간 설정</h3>
+    <div class="who">예: 06:30~08:00 (모두에게 같이 보여요)</div>
+    <div id="timesFields"></div>
+    <div class="err" id="timesErr"></div>
+    <button class="primary" id="timesSave">저장</button>
+    <button class="close" id="timesClose">닫기</button>
+  </div>
+</div>
+
+<div id="toast" hidden><span id="toastMsg"></span><button id="toastUndo">되돌리기</button></div>
+
+<script>
+const PLAYERS = ["주영광","오슬기","박철희","지현준"];
+const YEAR = 2026, MONTH = 9;            // 10월 (0-index)
+const SESSIONS = [1,2,3];
+const DEFAULT_TIMES = {1:"이른 아침",2:"오전~낮",3:"오후"};
+// 2026년 10월 공휴일 (개천절 토요일 → 10/5 대체공휴일). 정확한 지정은 관보로 확인하세요.
+const HOLIDAYS = {3:"개천절", 5:"대체공휴일", 9:"한글날"};
+const KEY_CACHE = "golf-votes-2026-10";
+const KEY_ME = "golf-me";
+const KEY_PIN = "golf-pin-";
+const API = "/api/votes";
+const POLL_MS = 5000;
+
+// votes: { "2026-10-11": { "주영광": {s:[1,2], t:timestamp} } } — 한 날짜에 여러 부 중복 투표 가능
+let votes = {}, meta = {}, pinSet = [], logs = [];
+try { votes = JSON.parse(localStorage.getItem(KEY_CACHE)) || {}; } catch(e){}
+let online = false, authed = false, booting = true, pending = 0;
+let me = null, pin = null, curDate = null, pinMode = "verify";
+try { me = localStorage.getItem(KEY_ME); } catch(e){}
+if (!PLAYERS.includes(me)) me = null;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const dkey = d => `${YEAR}-${pad(MONTH+1)}-${pad(d)}`;
+const pidx = name => PLAYERS.indexOf(name);
+const initial = name => name[0];
+const dowNum = d => new Date(YEAR,MONTH,d).getDay();
+const dowOf = d => "일월화수목금토"[dowNum(d)];
+const isOff = d => dowNum(d)===0 || dowNum(d)===6 || !!HOLIDAYS[d];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function dot(name){ return `<span class="pill dot c${pidx(name)}" title="${name}">${initial(name)}</span>`; }
+function timeOf(s){ return (meta.times && meta.times[s]) || DEFAULT_TIMES[s]; }
+// 서버가 있으면 PIN 인증 후에만, 서버가 없으면(파일로 열었을 때) 이 기기에서만 사용
+const canUse = () => authed || (!online && !booting);
+
+function norm(s){ return (Array.isArray(s) ? s : (s ? [s] : [])).filter(x => SESSIONS.includes(x)).sort(); }
+function getS(date, name){ const v = votes[date] && votes[date][name]; return v ? norm(v.s) : []; }
+function voters(date, s){ return PLAYERS.filter(p => getS(date,p).includes(s)); }
+function cache(){ try { localStorage.setItem(KEY_CACHE, JSON.stringify(votes)); } catch(e){} }
+
+/* ---------- 서버 통신 (Vercel + Upstash Redis) ---------- */
+async function pull(){
+  if (pending > 0) return;                       // 내 저장이 진행 중이면 갱신하지 않음 (투표가 되돌아가는 현상 방지)
+  try {
+    const r = await fetch(API, {cache:"no-store"});
+    if (!r.ok) throw 0;
+    const data = await r.json();
+    if (pending > 0) return;                     // 응답을 기다리는 사이 저장이 시작된 경우
+    votes = data.votes || {}; meta = data.meta || {}; pinSet = data.pinSet || []; logs = data.log || [];
+    online = true; cache();
+  } catch(e){ online = false; }
+  if (me && canUse()){ render(); if ($("dayModal").classList.contains("on")) drawDay(); }
+}
+
+async function post(body){
+  try {
+    const r = await fetch(API, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({player: me, pin, ...body})});
+    let data = {}; try { data = await r.json(); } catch(e){}
+    if (r.status === 401 && body.action !== "auth") { authed = false; $("dayModal").classList.remove("on"); askPin("verify", "PIN이 맞지 않아요. 다시 입력해 주세요."); }
+    return {ok: r.ok, status: r.status, data};
+  } catch(e){ return {ok:false, status:0, data:{}}; }
+}
+
+async function push(entries, {undo=true} = {}){
+  const prev = entries.map(e => ({date:e.date, s:getS(e.date, me)}));
+  entries.forEach(e => {
+    votes[e.date] = votes[e.date] || {};
+    votes[e.date][me] = { s: norm(e.s), t: Date.now() };
+  });
+  cache(); pending++; render();
+  const res = await post({action:"vote", entries});
+  pending--;
+  if (res.ok){ online = true; if (undo) toast(entries.length>1 ? `${entries.length}일치 투표를 바꿨어요` : "투표를 저장했어요", prev); }
+  else if (res.status === 0) online = false;
+  await pull();
+  renderStatus();
+}
+const setList = (date, list) => push([{date, s:list}]);
+const toggleVote = (date, s) => { const c = getS(date, me); return setList(date, c.includes(s) ? c.filter(x=>x!==s) : [...c, s]); };
+
+/* ---------- 되돌리기 토스트 ---------- */
+let toastTimer = null, undoData = null;
+function toast(msg, prev){
+  undoData = prev || null;
+  $("toastMsg").textContent = msg;
+  $("toastUndo").hidden = !prev;
+  $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $("toast").hidden = true; undoData = null; }, 7000);
+}
+$("toastUndo").onclick = () => {
+  if (!undoData) return;
+  const d = undoData; undoData = null; $("toast").hidden = true;
+  push(d, {undo:false}).then(() => toast("되돌렸어요"));
+};
+
+/* ---------- PIN 인증 ---------- */
+function askPin(mode, msg){
+  pinMode = mode;
+  $("pinTitle").textContent = mode === "create" ? "PIN을 정해주세요" : `${me} 님 PIN 입력`;
+  $("pinDesc").textContent = mode === "create"
+    ? "처음이시네요! 다른 사람이 내 이름으로 투표하지 못하게 숫자 4자리 PIN을 정해주세요. 잊으면 관리자가 초기화해야 해요."
+    : "본인 확인을 위해 숫자 4자리 PIN을 입력하세요.";
+  $("pin2").hidden = mode !== "create";
+  $("pin1").value = ""; $("pin2").value = "";
+  $("pinErr").textContent = msg || "";
+  $("pinModal").classList.add("on");
+  show();
+  setTimeout(() => $("pin1").focus(), 50);
+}
+async function submitPin(){
+  const p1 = $("pin1").value.trim();
+  if (!/^\d{4}$/.test(p1)) { $("pinErr").textContent = "숫자 4자리를 입력하세요."; return; }
+  if (pinMode === "create" && p1 !== $("pin2").value.trim()) { $("pinErr").textContent = "두 PIN이 서로 달라요."; return; }
+  pin = p1;
+  const res = await post({action:"auth"});
+  if (res.ok){
+    authed = true;
+    try { localStorage.setItem(KEY_PIN + me, pin); } catch(e){}
+    $("pinModal").classList.remove("on");
+    await pull(); show();
+  } else if (res.status !== 401) {
+    $("pinErr").textContent = res.data.error || "서버에 연결할 수 없어요.";
+  } else { $("pinErr").textContent = "PIN이 맞지 않아요."; }
+}
+$("pinOk").onclick = submitPin;
+$("pin1").onkeydown = $("pin2").onkeydown = e => { if (e.key === "Enter") submitPin(); };
+$("pinCancel").onclick = () => { $("pinModal").classList.remove("on"); logout(); };
+
+async function enter(){                          // 이름을 고른 뒤 로그인 절차
+  authed = false; pin = null; booting = true;
+  await pull();
+  booting = false;
+  if (!online){ show(); return; }                // 서버가 없으면 이 기기에서만 사용
+  try { pin = localStorage.getItem(KEY_PIN + me); } catch(e){}
+  if (!pinSet.includes(me)) { askPin("create"); return; }
+  if (pin){                                      // 저장된 PIN으로 조용히 확인
+    const res = await post({action:"auth"});
+    if (res.ok){ authed = true; show(); return; }
+  }
+  askPin("verify");
+}
+function logout(){
+  me = null; authed = false; pin = null;
+  try { localStorage.removeItem(KEY_ME); } catch(e){}
+  show();
+}
+
+/* ---------- 화면 전환 ---------- */
+function show(){
+  $("pick").hidden = !!me;
+  const inMain = !!me && canUse();
+  $("main").hidden = !inMain;
+  if (inMain) render();
+}
+function buildPick(){
+  $("pgrid").innerHTML = PLAYERS.map((p,i) =>
+    `<button class="pbtn" data-p="${p}"><span class="pill dot c${i}" style="display:flex">${initial(p)}</span>${p}</button>`).join("");
+  $("pgrid").onclick = e => {
+    const b = e.target.closest(".pbtn"); if(!b) return;
+    me = b.dataset.p;
+    try { localStorage.setItem(KEY_ME, me); } catch(_){}
+    show(); enter();
+  };
+}
+$("switchBtn").onclick = logout;
+
+/* ---------- 렌더 ---------- */
+function ago(t){
+  const m = Math.floor((Date.now()-t)/60000);
+  if (m < 1) return "방금"; if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m/60); return h < 24 ? `${h}시간 전` : `${Math.floor(h/24)}일 전`;
+}
+function renderStatus(){
+  $("status").textContent = online
+    ? "🟢 실시간 연결됨 (5초마다 자동 갱신)"
+    : "🔴 서버에 연결되지 않음 — 이 기기에만 저장됩니다";
+}
+function render(){
+  $("meName").textContent = me;
+  $("meDot").className = `pill dot c${pidx(me)}`;
+  $("meDot").textContent = initial(me);
+  $("legend").innerHTML = PLAYERS.map(p => `<span>${dot(p)} ${p}</span>`).join("");
+  renderStatus();
+
+  const conf = meta.confirmed || null;
+  const first = new Date(YEAR, MONTH, 1).getDay();
+  const last = new Date(YEAR, MONTH+1, 0).getDate();
+  let h = ["일","월","화","수","목","금","토"].map(d=>`<div class="dow">${d}</div>`).join("");
+  for (let i=0;i<first;i++) h += `<div class="day blank"></div>`;
+
+  const full = {}, near = {};
+  for (let d=1; d<=last; d++){
+    const key = dkey(d), dow = dowNum(d);
+    let rows = "", ok = false;
+    SESSIONS.forEach(s => {
+      const v = voters(key, s);
+      const isFull = v.length === PLAYERS.length;
+      if (isFull){ ok = true; (full[d] = full[d] || []).push(s); }
+      else if (v.length === PLAYERS.length-1){ (near[d] = near[d] || []).push({s, miss: PLAYERS.find(p=>!v.includes(p))}); }
+      rows += `<div class="row${isFull?" full":""}"><i>${s}<span class="bu">부</span></i>${v.map(dot).join("")}</div>`;
+    });
+    const cls = ["day", dow===0?"sun":"", dow===6?"sat":"", HOLIDAYS[d]?"hol":"", ok?"ok":"", getS(key,me).length?"mine":"", conf&&conf.date===key?"fin":""].join(" ");
+    h += `<button class="${cls}" data-d="${d}"><span class="n">${d}</span>${HOLIDAYS[d]?`<span class="hn">${HOLIDAYS[d]}</span>`:""}${rows}</button>`;
+  }
+  $("grid").innerHTML = h;
+
+  // 확정 배너
+  const fb = $("final");
+  if (conf && conf.date){
+    const cd = +conf.date.slice(-2);
+    const missing = PLAYERS.filter(p => !getS(conf.date,p).includes(conf.s));
+    fb.innerHTML = `<small>⭐ 라운딩 확정</small><strong>10월 ${cd}일 (${dowOf(cd)}) ${conf.s}부</strong>`
+      + `<div class="t">${esc(timeOf(conf.s))} · ${esc(conf.by || "")} 님이 확정</div>`
+      + (missing.length ? `<div class="warn">⚠ ${missing.join(", ")} 님은 이 시간 투표가 없어요</div>` : `<div class="t">참석: ${PLAYERS.join(" · ")}</div>`)
+      + `<button id="unconfirm">확정 취소</button>`;
+    fb.hidden = false;
+    $("unconfirm").onclick = async () => {
+      if (!confirm("확정을 취소할까요?")) return;
+      const res = await post({action:"confirm", date:null});
+      if (res.ok){ await pull(); toast("확정을 취소했어요"); }
+    };
+  } else { fb.hidden = true; fb.innerHTML = ""; }
+
+  // 가능 일정 배너 (추천순: 주말·공휴일 우선 → 가능한 부가 많은 날 → 빠른 날짜)
+  const fd = Object.keys(full).map(Number);
+  const best = [...fd].sort((a,b) => (isOff(b)-isOff(a)) || (full[b].length-full[a].length) || (a-b))[0];
+  fd.sort((a,b)=>a-b);
+  const rb = $("result");
+  if (fd.length){
+    rb.className = "result yes";
+    rb.innerHTML = `<small>🎉 라운딩 가능 일정 (4명 모두 가능)</small>`
+      + fd.map(d => `<div class="rline"><span class="d">${d}일(${dowOf(d)})${HOLIDAYS[d]?`<span class="hol">${HOLIDAYS[d]}</span>`:""}</span>${full[d].map(s=>`<span class="s">${s}부<em>${esc(timeOf(s))}</em></span>`).join("")}${d===best&&fd.length>1?`<span class="rec">추천</span>`:""}</div>`).join("");
+  } else {
+    rb.className = "result no";
+    rb.innerHTML = `<small>라운딩 가능 일정</small><strong>아직 4명이 모두 겹치는 일정이 없어요</strong>`;
+  }
+
+  // 보조 요약
+  const nd = Object.keys(near).map(Number).sort((a,b)=>a-b);
+  const count = p => Object.keys(votes).filter(k=>getS(k,p).length>0).length;
+  const none = PLAYERS.filter(p => count(p) === 0);
+  let s = none.length
+    ? `<div class="wait warn">⏳ 아직 투표 안 한 사람: ${none.join(", ")}</div>`
+    : `<div class="wait">✅ 4명 모두 투표에 참여했어요</div>`;
+  if (nd.length){
+    s += `<div class="sub-h">아쉬운 후보 (1명만 더 맞으면 가능)</div>`;
+    s += nd.map(d => `<div class="sline"><b>${d}일</b>${near[d].map(x=>`<span class="tag near">${x.s}부 · ${x.miss} 미투표</span>`).join("")}</div>`).join("");
+  }
+  s += `<div class="sub-h">투표 현황: ${PLAYERS.map(p => `${p} ${count(p)}일`).join(" · ")}</div>`;
+  $("summary").innerHTML = s;
+
+  // 변경 기록
+  const desc = l => {
+    const who = `<b>${esc(l.p||"")}</b>`;
+    if (l.k === "vote") return `${who} · ${+l.d.slice(-2)}일 ${l.s && l.s.length ? l.s.map(x=>x+"부").join(", ") : "투표 취소"}`;
+    if (l.k === "bulk") return `${who} · ${l.n}일치 일괄 변경`;
+    if (l.k === "confirm") return `${who} · ${+l.d.slice(-2)}일 ${l.s[0]}부 확정`;
+    if (l.k === "unconfirm") return `${who} · 확정 취소`;
+    if (l.k === "times") return `${who} · 부 시간 수정`;
+    return "";
+  };
+  $("logList").innerHTML = logs.length
+    ? logs.slice(0,15).map(l => `<div>${desc(l)} <span>(${ago(l.t)})</span></div>`).join("")
+    : `<div>아직 기록이 없어요.</div>`;
+}
+
+$("grid").onclick = e => {
+  const b = e.target.closest(".day"); if (!b || b.classList.contains("blank")) return;
+  openDay(+b.dataset.d);
+};
+
+/* ---------- 날짜 모달 ---------- */
+function openDay(d){
+  curDate = dkey(d);
+  $("dmTitle").textContent = `10월 ${d}일 (${dowOf(d)})${HOLIDAYS[d] ? " · " + HOLIDAYS[d] : ""}`;
+  $("dmWho").textContent = `${me} 님의 투표 — 가능한 부를 모두 눌러 선택하세요 (중복 가능, 다시 누르면 해제)`;
+  drawDay();
+  $("dayModal").classList.add("on");
+}
+function drawDay(){
+  const cur = getS(curDate, me), conf = meta.confirmed;
+  $("dmOpts").innerHTML = SESSIONS.map(s =>
+    `<button class="opt${cur.includes(s)?" sel":""}" data-s="${s}">${s}부<small>${esc(timeOf(s))}</small></button>`).join("");
+  $("dmX").style.display = cur.length ? "block" : "none";
+  $("dmList").innerHTML = PLAYERS.map(p => {
+    const s = getS(curDate,p);
+    return `<div>${dot(p)} ${p}: ${s.length ? `<b>${s.map(x=>x+"부").join(", ")}</b>` : `<span style="color:var(--sub)">투표 안 함</span>`}</div>`;
+  }).join("");
+  $("dmCfm").innerHTML = SESSIONS.map(s => {
+    const all = voters(curDate, s).length === PLAYERS.length;
+    const on = conf && conf.date === curDate && conf.s === s;
+    return `<button class="opt gold${on?" sel":""}" data-s="${s}" ${all?"":"disabled"}>${s}부${on?" ⭐":""}</button>`;
+  }).join("");
+}
+$("dmOpts").onclick = async e => {
+  const b = e.target.closest(".opt"); if(!b) return;
+  const p = toggleVote(curDate, +b.dataset.s); drawDay(); await p; drawDay();
+};
+$("dmX").onclick = async () => { const p = setList(curDate, []); drawDay(); await p; drawDay(); };
+$("dmCfm").onclick = async e => {
+  const b = e.target.closest(".opt"); if(!b || b.disabled) return;
+  const s = +b.dataset.s, d = +curDate.slice(-2);
+  if (!confirm(`10월 ${d}일 ${s}부로 라운딩을 확정할까요?`)) return;
+  const res = await post({action:"confirm", date:curDate, s});
+  if (!res.ok){ if (res.status !== 401) alert("서버에 연결되지 않아 확정할 수 없어요."); return; }
+  await pull(); drawDay(); toast(`${d}일 ${s}부로 확정했어요`);
+};
+$("dmClose").onclick = () => $("dayModal").classList.remove("on");
+$("dayModal").onclick = e => { if (e.target.id==="dayModal") $("dayModal").classList.remove("on"); };
+
+/* ---------- 부 시간 설정 ---------- */
+$("timesBtn").onclick = () => {
+  $("timesFields").innerHTML = SESSIONS.map(s =>
+    `<label style="font-size:13px;color:var(--sub)">${s}부<input class="field" id="tm${s}" maxlength="20" value="${esc((meta.times&&meta.times[s])||"")}" placeholder="${esc(DEFAULT_TIMES[s])}"></label>`).join("");
+  $("timesErr").textContent = "";
+  $("timesModal").classList.add("on");
+};
+$("timesSave").onclick = async () => {
+  const times = {}; SESSIONS.forEach(s => times[s] = $("tm"+s).value.trim());
+  const res = await post({action:"times", times});
+  if (!res.ok){ $("timesErr").textContent = res.status === 401 ? "" : "서버에 연결되지 않아 저장할 수 없어요."; return; }
+  await pull(); $("timesModal").classList.remove("on"); toast("부 시간을 저장했어요");
+};
+$("timesClose").onclick = () => $("timesModal").classList.remove("on");
+$("timesModal").onclick = e => { if (e.target.id==="timesModal") $("timesModal").classList.remove("on"); };
+
+$("resetBtn").onclick = () => {
+  if (!confirm(`${me} 님의 투표를 모두 삭제할까요? (직후 7초 안에는 되돌릴 수 있어요)`)) return;
+  const entries = Object.keys(votes).filter(d => getS(d, me).length).map(date => ({date, s:[]}));
+  if (entries.length) push(entries);
+};
+
+buildPick();
+if (me) { show(); enter(); } else show();
+setInterval(() => { if (!document.hidden) pull(); }, POLL_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pull(); });
+</script>
+</body>
+</html>
